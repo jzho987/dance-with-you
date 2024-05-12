@@ -67,7 +67,7 @@ optimizer:
         gamma: 0.1
 # schedular: []
 data:
-    name: aist   
+    name: s_aist   
     train_dir: data/motions
     test_dir: data/motions
     seq_len: 240

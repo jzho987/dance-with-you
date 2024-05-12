@@ -41,23 +41,23 @@ PYTHONCMD="python -u main.py --config $1"
 
 if [ $2 == "train_recode" ];
 then
-    $TOOLS $PYTHONCMD \
+    $PYTHONCMD \
     --train_recode 
 elif [ $2 == "train_fill" ];
 then
-    $TOOLS $PYTHONCMD \
+    $PYTHONCMD \
     --train_fill 
 elif [ $2 == "eval" ];
 then
-    $TOOLS $PYTHONCMD \
+    $PYTHONCMD \
     --eval 
 elif [ $2 == "anl" ];
 then
-    $TOOLS $PYTHONCMD \
+    $PYTHONCMD \
     --anl 
 elif [ $2 == "sample" ];
 then
-    $TOOLS $PYTHONCMD \
+    $PYTHONCMD \
     --sample 
 fi
 

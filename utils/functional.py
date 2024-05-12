@@ -535,6 +535,65 @@ def load_data(data_dir, interval=900, data_type='2D'):
     # , [fn.replace('.json', '') for fn in fnames]
 
 
+def load_data_pkl(data_dir_motions, data_dir_music_features, interval=900, data_type='2D'):
+    music_data_np, dance_data_np = [], []
+    music_data, dance_data = [], []
+    fnames = sorted(os.listdir(data_dir_motions))
+    # print(fnames)
+    # fnames = fnames[:10]  # For debug
+    if ".ipynb_checkpoints" in fnames:
+        fnames.remove(".ipynb_checkpoints")
+    for fname in fnames:
+        path = os.path.join(data_dir_motions, fname)
+        with open(path, "rb") as f:
+            sample_dict = pickle.loads(f.read())
+            print(sample_dict)
+            np_music = np.array(sample_dict['music_array'])
+            np_dance = np.array(sample_dict['smpl_poses'])
+
+            music_data_np.append(np_music)
+            dance_data_np.append(np_dance)
+
+    fnames = sorted(os.listdir(data_dir_music_features))
+    if ".ipynb_checkpoints" in fnames:
+        fnames.remove(".ipynb_checkpoints")
+    for fname in fnames:
+        path = os.path.join(data_dir_music_features, fname)
+        with open(path) as f:
+            sample_dict = json.loads(f.read())
+            print(sample_dict)
+            np_music = np.array(sample_dict['music_array'])
+            np_dance = np.array(sample_dict['smpl_poses'])
+
+            music_data_np.append(np_music)
+            dance_data_np.append(np_dance)
+
+    itr = zip(music_data_np, dance_data_np)
+
+    for np_music, np_dance in itr:
+        if data_type == '2D':
+            # Only use 25 keypoints (x,y) skeleton (basic bone) for 2D
+            np_dance = np_dance[:, :50]
+            root = np_dance[:, 2*8:2*9]  # Use the hip keyjoint as the root
+            np_dance = np_dance - np.tile(root, (1, 25))  # Calculate relative offset with respect to root
+            np_dance[:, 2*8:2*9] = root
+
+        if interval is not None:
+            seq_len, dim = np_music.shape
+            for i in range(0, seq_len, interval):
+                music_sub_seq = np_music[i: i + interval]
+                dance_sub_seq = np_dance[i: i + interval]
+            if len(music_sub_seq) == interval:
+                    music_data.append(music_sub_seq)
+                    dance_data.append(dance_sub_seq)
+        else:
+            music_data.append(np_music)
+            dance_data.append(np_dance)
+
+    return music_data, dance_data
+    # , [fn.replace('.json', '') for fn in fnames]
+
+
 def load_data_aist(data_dir, interval=120, move=40, rotmat=False, external_wav=None, external_wav_rate=1, music_normalize=False, wav_padding=0):
     tot = 0
     music_data, dance_data = [], []
@@ -546,6 +605,7 @@ def load_data_aist(data_dir, interval=120, move=40, rotmat=False, external_wav=N
         fnames.remove(".ipynb_checkpoints")
     for fname in fnames:
         path = os.path.join(data_dir, fname)
+        print(f'path is {path}')
         with open(path) as f:
             # print(path)
             sample_dict = json.loads(f.read())

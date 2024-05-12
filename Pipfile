@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+torch = "==1.6.0"
+torchvision = "==0.7.0"
+tensorboard = "==2.8.0"
+pyyaml = "*"
+tqdm = "*"
+easydict = "*"
+tensorboardx = "*"
+scipy = "*"
+smplx = "*"
+opencv-python = "*"
+matplotlib = "*"
+protobuf = "==3.19.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
+python_full_version = "3.8.19"

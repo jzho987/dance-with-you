@@ -18,7 +18,7 @@ import pickle
 import pdb
 from tensorboardX import SummaryWriter
 # from utils.log import Logger
-from utils.functional import str2bool, load_data, load_data_aist, load_data_pkl, check_data_distribution,visualizeAndWrite,load_test_data_aist,load_test_data,load_test_data_pkl
+from utils.functional import str2bool, load_data, load_data_aist, load_data_pkl, check_data_distribution, visualizeAndWrite, load_test_data_aist, load_test_data
 # from utils.metrics import quantized_metrics
 from torch.optim import *
 import warnings
@@ -512,7 +512,7 @@ class MoQ():
         # self._dir_setting()
         self._build_model()
         # if not(hasattr(config, 'need_not_train_data') and config.need_not_train_data):
-        #     self._build_train_loader()
+        self._build_train_loader()
         # if not(hasattr(config, 'need_not_test_data') and config.need_not_train_data):
         #     self._build_test_loader()
         self._build_optimizer()
@@ -520,10 +520,10 @@ class MoQ():
     def _build_model(self):
         """ Define Model """
         config = self.config
-        if hasattr(config.structure_vqvae, 'name'):
-            print(f'using {config.structure_vqvae.name}')
+        if hasattr(config.structure, 'name'):
+            print(f'using {config.structure.name}')
             # model_class = getattr(vqvae, config.structure_vqvae.name)
-            model = SepVQVAE(config.structure_vqvae)
+            model = SepVQVAE(config.structure)
         else:
             raise NotImplementedError("Wrong Model Selection")
         
