@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-from diffusion.fp16_util import convert_module_to_f16, convert_module_to_f32
+# from diffusion.fp16_util import convert_module_to_f16, convert_module_to_f32
 from diffusion.nn import (
     checkpoint,
     conv_nd,
@@ -183,7 +183,7 @@ class ResBlock(TimestepBlock):
 
         self.in_layers = nn.Sequential(
             normalization(channels),
-            nn.SiLU(),
+            SiLU(),
             conv_nd(dims, channels, self.out_channels, 3, padding=1),
         )
 
@@ -199,7 +199,7 @@ class ResBlock(TimestepBlock):
             self.h_upd = self.x_upd = nn.Identity()
 
         self.emb_layers = nn.Sequential(
-            nn.SiLU(),
+            SiLU(),
             linear(
                 emb_channels,
                 2 * self.out_channels if use_scale_shift_norm else self.out_channels,
@@ -207,7 +207,7 @@ class ResBlock(TimestepBlock):
         )
         self.out_layers = nn.Sequential(
             normalization(self.out_channels),
-            nn.SiLU(),
+            SiLU(),
             nn.Dropout(p=dropout),
             zero_module(
                 conv_nd(dims, self.out_channels, self.out_channels, 3, padding=1)
@@ -516,19 +516,19 @@ class UNetModel(nn.Module):
         #     time_embed_dim = self.model_channels * 2
         #     self.time_embed = nn.Sequential(
         #         linear(self.model_channels, time_embed_dim),
-        #         nn.SiLU(),
+        #         SiLU(),
         #         linear(time_embed_dim, time_embed_dim),
         #     )
         # else:
         time_embed_dim = self.model_channels * 4
         self.time_embed = nn.Sequential(
             linear(self.model_channels, time_embed_dim),
-            nn.SiLU(),
+            SiLU(),
             linear(time_embed_dim, time_embed_dim),
         )
         # self.time_embed_con = nn.Sequential(
         #     linear(self.model_channels, self.model_channels * 2),
-        #     nn.SiLU(),
+        #     SiLU(),
         #     linear(self.model_channels * 2, self.model_channels * 2),
         # )
         if self.have_con:
@@ -701,7 +701,7 @@ class UNetModel(nn.Module):
 
         self.out = nn.Sequential(
             normalization(ch),
-            nn.SiLU(),
+            SiLU(),
             zero_module(conv_nd(self.dims, input_ch, self.out_channels, 3, padding=1)),
         )
 
@@ -864,7 +864,7 @@ class EncoderUNetModel(nn.Module):
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
             linear(model_channels, time_embed_dim),
-            nn.SiLU(),
+            SiLU(),
             linear(time_embed_dim, time_embed_dim),
         )
 
@@ -957,7 +957,7 @@ class EncoderUNetModel(nn.Module):
         if pool == "adaptive":
             self.out = nn.Sequential(
                 normalization(ch),
-                nn.SiLU(),
+                SiLU(),
                 nn.AdaptiveAvgPool2d((1, 1)),
                 zero_module(conv_nd(dims, ch, out_channels, 1)),
                 nn.Flatten(),
@@ -966,7 +966,7 @@ class EncoderUNetModel(nn.Module):
             assert num_head_channels != -1
             self.out = nn.Sequential(
                 normalization(ch),
-                nn.SiLU(),
+                SiLU(),
                 AttentionPool2d(
                     (image_size // ds), ch, num_head_channels, out_channels
                 ),
@@ -981,7 +981,7 @@ class EncoderUNetModel(nn.Module):
             self.out = nn.Sequential(
                 nn.Linear(self._feature_size, 2048),
                 normalization(2048),
-                nn.SiLU(),
+                SiLU(),
                 nn.Linear(2048, self.out_channels),
             )
         else:
@@ -1067,7 +1067,7 @@ class ResBlock_withoutemb(nn.Module):
 
         self.in_layers = nn.Sequential(
             normalization(channels),
-            nn.SiLU(),
+            SiLU(),
             conv_nd(dims, channels, self.out_channels, 3, padding=1),
         )
 
@@ -1085,7 +1085,7 @@ class ResBlock_withoutemb(nn.Module):
         
         self.out_layers = nn.Sequential(
             normalization(self.out_channels),
-            nn.SiLU(),
+            SiLU(),
             nn.Dropout(p=dropout),
             zero_module(
                 conv_nd(dims, self.out_channels, self.out_channels, 3, padding=1)
@@ -1138,20 +1138,20 @@ class ConditionModel(nn.Module):
         
         self.music_layer = nn.Sequential(
             conv_nd(dims, self.in_channels_music*4, self.model_channels, 3, padding=1),
-            nn.SiLU(),
+            SiLU(),
             normalization(self.model_channels),
         )
         
         self.linear_seq = nn.Sequential(
             conv_nd(dims, self.model_channels, self.model_channels, 3, padding=1),
-            nn.SiLU(),
+            SiLU(),
             normalization(self.model_channels),
         )
 
         out_channels = self.model_channels * 2
         # self.music_layer = nn.Sequential(
         #     linear(self.in_channels_music, self.model_channels),
-        #     nn.SiLU(),
+        #     SiLU(),
         #     linear(self.model_channels, self.model_channels),
         # )
         
@@ -1159,7 +1159,7 @@ class ConditionModel(nn.Module):
 
         # self.linear_seq = nn.Sequential(
         #     linear(self.seq_dim, self.seq_dim),
-        #     nn.SiLU(),
+        #     SiLU(),
         #     linear(self.seq_dim, self.seq_dim),
         # )
         
@@ -1182,7 +1182,7 @@ class ConditionModel(nn.Module):
         
         self.out = nn.Sequential(
             normalization(out_channels),
-            nn.SiLU(),
+            SiLU(),
             # nn.AdaptiveAvgPool2d((out_channels, 1)),
             # zero_module(conv_nd(dims, out_channels, 8, 1)),
             zero_module(conv_nd(dims, out_channels,self.model_channels,1,)),
@@ -1211,3 +1211,9 @@ class ConditionModel(nn.Module):
         # print(out.shape)
 
         return out
+
+ # SiLU https://arxiv.org/pdf/1606.08415.pdf ---------------------------------------------------------------------------- 
+class SiLU(nn.Module):  # export-friendly version of SiLU() 
+     @staticmethod 
+     def forward(x): 
+         return x * th.sigmoid(x) 
