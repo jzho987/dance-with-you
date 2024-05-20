@@ -1,7 +1,7 @@
 import copy
 import functools
 import os
-from .. import logger
+from diffusion import logger
 
 import blobfile as bf
 import torch as th
