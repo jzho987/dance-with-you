@@ -104,10 +104,10 @@ class DiffVQVAE():
         # self.modelf=nn.parallel.DistributedDataParallel(self.modelf)
         
         modelv = nn.DataParallel(modelv, device_ids=device_ids)
-        modelu = nn.DataParallel(modelu, device_ids=device_ids)
+        # modelu = nn.DataParallel(modelu, device_ids=device_ids)
         modelf = nn.DataParallel(modelf, device_ids=device_ids)
         self.modelv = modelv.cuda()
-        self.modelu = modelu.cuda()
+        # self.modelu = modelu.cuda()
         self.modelf = modelf.cuda()
         
     def _build_diffusion_model(self):
@@ -124,16 +124,16 @@ class DiffVQVAE():
         self.diffusion_fill = GaussianDiffusion(betas=beats, model_mean_type= model_mean_type, model_var_type= model_var_type, loss_type= loss_type)
     
         #init diffusion model recode
-        self.timesteps_r = self.config.structure_diffusion_recode.timesteps
-        beats=get_named_beta_schedule('linear',self.timesteps_r)
-        if hasattr(self.config.structure_diffusion_recode, 'model_mean_type'):
-            model_mean_type = getattr(gd.ModelMeanType, self.config.structure_diffusion_recode.model_mean_type)
-        if hasattr(self.config.structure_diffusion_recode, 'model_var_type'):
-            model_var_type = getattr(gd.ModelVarType, self.config.structure_diffusion_recode.model_var_type)
-        if hasattr(self.config.structure_diffusion_recode, 'loss_type'):
-            loss_type = getattr(gd.LossType, self.config.structure_diffusion_recode.loss_type)
+        # self.timesteps_r = self.config.structure_diffusion_recode.timesteps
+        # beats=get_named_beta_schedule('linear',self.timesteps_r)
+        # if hasattr(self.config.structure_diffusion_recode, 'model_mean_type'):
+        #     model_mean_type = getattr(gd.ModelMeanType, self.config.structure_diffusion_recode.model_mean_type)
+        # if hasattr(self.config.structure_diffusion_recode, 'model_var_type'):
+        #     model_var_type = getattr(gd.ModelVarType, self.config.structure_diffusion_recode.model_var_type)
+        # if hasattr(self.config.structure_diffusion_recode, 'loss_type'):
+        #     loss_type = getattr(gd.LossType, self.config.structure_diffusion_recode.loss_type)
         
-        self.diffusion_recode = GaussianDiffusion(betas=beats, model_mean_type= model_mean_type, model_var_type= model_var_type, loss_type= loss_type)
+        # self.diffusion_recode = GaussianDiffusion(betas=beats, model_mean_type= model_mean_type, model_var_type= model_var_type, loss_type= loss_type)
         
         
         
@@ -148,8 +148,8 @@ class DiffVQVAE():
         self.optimizer_f = optim(self.modelf.parameters(), **config.kwargs)
         self.schedular_f = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_f, **config.schedular_kwargs)
         
-        self.optimizer_r = optim(self.modelu.parameters(), **config.kwargs)
-        self.schedular_r = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_r, **config.schedular_kwargs)
+        # self.optimizer_r = optim(self.modelu.parameters(), **config.kwargs)
+        # self.schedular_r = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_r, **config.schedular_kwargs)
         
     def _build_test_loader(self):
         data=self.config.data
@@ -349,16 +349,16 @@ class DiffVQVAE():
         training_data = self.training_data 
         # testing_data = self.testing_data
         device = torch.device('cuda' if config.cuda else 'cpu')
-        timesteps = self.timesteps_r
+        timesteps = self.timesteps_f
         
         log = Logger(self.config, './log/loger/changeinput/')
         
         # load model
-        checkpoint = torch.load(config.vqvae_weight, map_location={'cuda:0':'cuda:1'})
+        checkpoint = torch.load(config.vqvae_weight, map_location=torch.device('cuda'))
         vqvae.load_state_dict(checkpoint['model'], strict=False)
               
         if hasattr(config, 'fill_weight') and config.fill_weight is not None and config.fill_weight is not '': 
-            checkpoint = torch.load(config.fill_weight, map_location={'cuda:0':'cuda:1'})
+            checkpoint = torch.load(config.fill_weight, map_location=torch.device('cuda'))
             unet_fill.load_state_dict(checkpoint['model'], strict=False)
             
         
@@ -421,6 +421,13 @@ class DiffVQVAE():
                 # ground_truth = pose_mask*dequants_main + (1-pose_mask)*dequants_back
                 
                 # losses = self.diffusion_fill.training_losses(unet_fill, x_start=pose_code, t=t, x_real_mask=pose_mask) 
+                print("--------------------")
+                print("pose code", pose_code)
+                print("--------------------")
+                print("pose mask", pose_mask)
+                print("--------------------")
+                print("t", t)
+                print("--------------------")
                 losses = self.diffusion_fill.training_losses(unet_fill, x_start=pose_code, t=t, x_real_mask=pose_mask) 
                 loss = losses["loss"] #.mean()
                 # print(loss)

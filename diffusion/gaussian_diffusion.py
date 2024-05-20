@@ -94,7 +94,7 @@ class LossType(enum.Enum):
     )  # use raw MSE loss (with RESCALED_KL when learning variances)
     KL = enum.auto()  # use the variational lower-bound
     RESCALED_KL = enum.auto()  # like KL, but rescale to estimate the full VLB
-
+    CODEBOOKLOSS = enum.auto()  # backfill for the code
     NEWLOSS = enum.auto() 
     def is_vb(self):
         return self == LossType.KL or self == LossType.RESCALED_KL
@@ -130,6 +130,10 @@ class GaussianDiffusion:
         self.model_var_type = model_var_type
         self.loss_type = loss_type
         self.rescale_timesteps = rescale_timesteps
+
+        # RECON: codebook
+        self.codebook_upper = []
+        self.codebook_lower = []
 
         # Use float64 for accuracy.
         betas = np.array(betas, dtype=np.float64)
@@ -352,6 +356,12 @@ class GaussianDiffusion:
             "log_variance": model_log_variance,
             "pred_xstart": pred_xstart,
         }
+    
+    ## RECON: this is to collect codes, and then use it for the loss function for ensuring good diversity.
+    def set_codebook_var(self, code_up, code_down):
+        self.codebook_upper.append(code_up)
+        self.codebook_lower.append(code_down)
+
 
     def _predict_xstart_from_eps(self, x_t, t, eps):
         assert x_t.shape == eps.shape
@@ -1003,6 +1013,7 @@ class GaussianDiffusion:
                 model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
             
             
+            ## RECON: This likely not run. Ignore for now
             if self.model_var_type in [
                 ModelVarType.LEARNED,
                 ModelVarType.LEARNED_RANGE,
@@ -1021,10 +1032,7 @@ class GaussianDiffusion:
                     t=t,
                     clip_denoised=False,
                 )["output"]
-                if self.loss_type == LossType.RESCALED_MSE:
-                    # Divide by 1000 for equivalence with initial implementation.
-                    # Without a factor of 1/1000, the VB term hurts the MSE term.
-                    terms["vb"] *= self.num_timesteps / 1000.0
+            ## RECON: This likely not run. Ignore for now
 
             target = {
                 ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
@@ -1032,16 +1040,26 @@ class GaussianDiffusion:
                 )[0],    ####
                 ModelMeanType.START_X: x_real,
                 ModelMeanType.EPSILON: noise,
-            }[self.model_mean_type]
-            
+            }[self.model_mean_type] # Mean type in config is START_X
             
             assert model_output.shape == target.shape == x_start.shape
-            terms["mse"] = mean_flat((target - model_output) ** 2)
-            if "vb" in terms:
-                terms["loss"] = 10* terms["mse"] + terms["vb"]
-            else:
-                terms["loss"] = terms["mse"]
+            terms["loss"] = mean_flat((target - model_output) ** 2) # MSE loss
+        elif self.loss_type == LossType.CODEBOOKLOSS:
+            print('code book loss')
+            # x_real_t = self.q_sample(x_real, t, noise=noise)
+            assert x_real is not None, 'x_real must be init when use newloss'
             
+            if music is not None or seq is not None:
+                if music is not None and seq is not None:
+                    print('both have')
+                model_output = model(x_t, self._scale_timesteps(t), music, seq, **model_kwargs)
+            else:
+                print('uncon!!!')
+                model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
+
+            target = x_real
+            assert model_output.shape == target.shape == x_start.shape
+            terms["loss"] = mean_flat((target - model_output) ** 2) # TODO: add argmin for the codes
         else:
             raise NotImplementedError(self.loss_type)
 
